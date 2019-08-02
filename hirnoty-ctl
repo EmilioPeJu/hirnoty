@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+import argparse
+from hirnoty.main import main
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest='command')
+    start_parser = subparsers.add_parser('start', help='start hirnoty')
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    main()
