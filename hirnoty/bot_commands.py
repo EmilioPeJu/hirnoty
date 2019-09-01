@@ -7,6 +7,7 @@ import shlex
 from io import BytesIO
 from os import path
 
+from hirnoty.bot import DOCUMENT, ANY
 from hirnoty.index import SimpleIndex
 from hirnoty.jobs import Runner, ScriptNotFound
 
@@ -19,19 +20,21 @@ class Commands(object):
         self._mq = mq
         self._config = config
         self._index = SimpleIndex(self._config["INDEX_DIR"])
-        default_method = None
+        if getattr(self, 'doc_command', False):
+            # if this is not the first one, there will be an error
+            # in the following command's filters
+            self._bot.register_handler(self.doc_command, content_types=DOCUMENT)
         for (method_name, method) in inspect.getmembers(self):
             if method_name.endswith('_command'):
                 command_name = method_name[0:-8]
-                if not command_name:
-                    default_method = method
+                if command_name == "default" or command_name == 'doc':
                     continue
                 commands = [command_name]
                 log.info("Registering command %s", commands)
                 self._bot.register_handler(method, commands)
-        if default_method:
+        if getattr(self, 'default_command', False):
             # make sure this is last to not override others
-            self._bot.register_handler(default_method)
+            self._bot.register_handler(self.default_command, content_types=ANY)
 
     async def exec_command(self, message):
         parts = shlex.split(message["text"])
@@ -60,7 +63,7 @@ class Commands(object):
             res = res.replace('..', '.')
         return res
 
-    async def _command(self, message):
+    async def doc_command(self, message):
         if message.document:
             await self._download_and_index(message)
 

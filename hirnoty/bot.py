@@ -29,8 +29,6 @@ class BotManager(object):
 
     def register_handler(self, handler, commands=None, regexp=None,
             content_types=None):
-        if content_types == None:
-            content_types = ANY
         self.dispatcher.register_message_handler(
             log_message(run_handler_if_allowed(handler)),
             commands=commands, regexp=regexp,
