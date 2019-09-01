@@ -1,0 +1,5 @@
+---
+- hosts: hirnoty
+  tasks:
+    - include_role:
+        name: pi-hirnoty

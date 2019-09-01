@@ -1,0 +1,25 @@
+---
+- name: "Creating hirnoty directory (if needed)"
+  become: yes
+  file:
+    path: /etc/hirnoty
+    state: directory
+- name: "Copying hirnoty configuration"
+  become: yes
+  template:
+    src: config.py
+    dest: /etc/hirnoty/config.py
+- name: "Creating hirnoty downloads dir"
+  become: yes
+  file:
+    owner: "pi"
+    group: "pi"
+    path: "{{ DOWN_DIR }}"
+    state: directory
+- name: "Creating hirnoty script dir"
+  become: yes
+  file:
+    owner: "pi"
+    group: "pi"
+    path: "{{ SCRIPT_DIR }}"
+    state: directory

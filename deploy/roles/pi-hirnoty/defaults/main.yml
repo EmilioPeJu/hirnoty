@@ -1,0 +1,5 @@
+---
+# defaults file for hirnoty
+TOKEN: ""
+DOWN_DIR: /home/pi/Downloads
+SCRIPT_DIR: /home/pi/scripts

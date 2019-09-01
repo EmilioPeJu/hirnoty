@@ -1,0 +1,11 @@
+[Unit]
+Description=Run hirnoty as a service
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+ExecStart=/usr/local/bin/hirnoty-ctl start
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,5 @@
+---
+# tasks file for hirnoty
+- include_tasks: "setup.yml"
+- include_tasks: "configure.yml"
+- include_tasks: "services.yml"

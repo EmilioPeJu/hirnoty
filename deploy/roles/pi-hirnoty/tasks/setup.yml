@@ -1,0 +1,13 @@
+---
+- name: "Installing {{item}}"
+  become: True
+  apt:
+    name: "{{item}}"
+    state: present
+  loop: "{{packages}}"
+- name: "Installing hirnoty"
+  become: True
+  pip:
+    name: "git+https://github.com/hir12111/hirnoty"
+    executable: /usr/bin/pip3
+    state: latest

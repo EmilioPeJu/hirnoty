@@ -1,0 +1,14 @@
+---
+- name: "Copying hirnoty service"
+  become: yes
+  copy:
+    src: hirnoty.service
+    dest: /lib/systemd/system/hirnoty.service
+
+- name: "Starting hirnoty service"
+  become: yes
+  systemd:
+    name: hirnoty
+    state: started
+    enabled: yes
+    daemon_reload: yes
