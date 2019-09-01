@@ -5,7 +5,7 @@ setup(
     name='hirnoty',
     description='A simple telegram bot for executing scripts and getting' \
                 ' notifications',
-    version='0.1',
+    version='0.2',
     packages=['hirnoty',],
     install_requires=['aiogram',
                       'pyzmq'],
