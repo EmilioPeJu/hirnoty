@@ -3,12 +3,16 @@ import logging
 import shlex
 
 from aiogram import Bot, Dispatcher, executor, types
+from aiogram.types.message import ContentType
 from aiogram.utils.executor import start_polling
 
 from hirnoty.security import run_handler_if_allowed
 from hirnoty.settings import config
 
 log = logging.getLogger(__name__)
+
+ANY = ContentType.ANY
+DOCUMENT = ContentType.DOCUMENT
 
 
 class BotManager(object):
@@ -17,6 +21,8 @@ class BotManager(object):
         self.dispatcher = Dispatcher(self.bot)
 
     def register_command(self, command, handler):
+        if content_types == None:
+            content_types = ANY
         self.dispatcher.register_message_handler(
             run_handler_if_allowed(handler), commands=[command])
 
