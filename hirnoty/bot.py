@@ -13,6 +13,7 @@ log = logging.getLogger(__name__)
 
 ANY = ContentType.ANY
 DOCUMENT = ContentType.DOCUMENT
+VIDEO = ContentType.VIDEO
 
 
 def log_message(func):

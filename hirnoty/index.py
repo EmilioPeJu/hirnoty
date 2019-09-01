@@ -35,18 +35,20 @@ class SimpleIndex(object):
         for word in words:
             yield word.strip().lower().translate(trans)
 
-    def index_file(self, doc_id, words, filename, hash_):
+    def index_file(self, doc_id, words, filename, hash_, content_type):
         if doc_id == None:
             doc_id = NOTUPLOADED_PREFIX + hash_;
+        sane_words = list(self.normalize_words(words))
         doc_entry = self._docs.get(doc_id)
         if not doc_entry:
             doc_entry = {'id': doc_id, 'keywords': []}
             self._docs[doc_id] = doc_entry
-        doc_entry['keywords'].extend(words)
+        doc_entry['keywords'].extend(sane_words)
         doc_entry['filename'] = filename
         doc_entry['hash'] = hash_
+        doc_entry['content_type'] = content_type
         self._hash2docid[hash_] = doc_id
-        for word in self.normalize_words(words):
+        for word in sane_words:
             lex_entry = self._lexicon.get(word)
             if not lex_entry:
                 lex_entry = []
