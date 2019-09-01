@@ -153,3 +153,7 @@ class Commands(object):
         hash_ = hash_o.hexdigest()
         doc = self._index.index_file(None, terms, file_name, hash_)
         await message.reply(f"File indexed: {doc}")
+
+    async def default_command(self, message):
+        # for logging purposes
+        pass
