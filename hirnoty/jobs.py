@@ -5,8 +5,6 @@ import subprocess
 import threading
 from os import X_OK, access, path
 
-from hirnoty.settings import config
-
 log = logging.getLogger(__name__)
 
 
@@ -16,7 +14,8 @@ class ScriptNotFound(Exception):
 
 class Runner(object):
 
-    def __init__(self, template, args):
+    def __init__(self, config, template, args):
+        self._config = config
         self.template = template
         self.process = None
         self.command = self._get_script_path(self.template)
@@ -29,7 +28,7 @@ class Runner(object):
     def _get_script_path(self, template):
         safe_template = self._sanitize_template(template)
         for ext in ("", ".sh", ".py"):
-            script_path = path.join(config["SCRIPT_DIR"], "{}{}"
+            script_path = path.join(self._config["SCRIPT_DIR"], "{}{}"
                                     .format(safe_template, ext))
             if access(script_path, X_OK):
                 return script_path
