@@ -9,6 +9,8 @@
   template:
     src: config.py
     dest: /etc/hirnoty/config.py
+  notify:
+    - restart hirnoty
 - name: "Creating hirnoty downloads dir"
   become: yes
   file:
