@@ -13,7 +13,7 @@ def check_otp(message):
         return True
 
     with open(OTP, "r") as fhandler:
-        data = fhandler.read().split()
+        data = fhandler.read().split("\n")
 
     if not data:
         return False
