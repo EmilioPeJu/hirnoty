@@ -31,7 +31,7 @@ You can now talk to the bot
 Execute script with name {script_name}
 
 
-\subs {topic_name}
+\join {topic_name}
 
 Subscribe to topic {topic_name}
 

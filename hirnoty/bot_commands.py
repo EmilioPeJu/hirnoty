@@ -47,7 +47,7 @@ class Commands(object):
             await message.reply(line)
 
 
-    async def subs_command(self, message):
+    async def join_command(self, message):
         topics = shlex.split(message["text"])[1:]
         for topic in topics:
             log.info("Subscribing to %s", topic)
