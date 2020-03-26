@@ -50,7 +50,7 @@ class Commands(object):
     async def subs_command(self, message):
         topics = shlex.split(message["text"])[1:]
         for topic in topics:
-            log.info("Subscribing to %d", topic)
+            log.info("Subscribing to %s", topic)
             self._mq.subscribe(topic, message.reply)
             await message.reply(f"{topic}: Subscribed")
 
