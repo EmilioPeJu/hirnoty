@@ -58,8 +58,8 @@ LOGLEVEL (str): loglevel, choice between: `'error'`, `warning`, `'info'` or `'de
 
 BIND\_ADDRESS (str): address to receive the external messages from, defauls to '*:1234'
 
-CONNECT\_ADDRESS (str): address to send messages to '127.0.0.1:1234'.
-This is used for the logging topic.
+CONNECT\_ADDRESS (str): address to send messages to, defaults to '127.0.0.1:1234'.
+This is used for pushing to internal topics, e.g. log topic.
 
 OTP (str): path to a file with one time passwords (one per line) that will be
 consume from end to beginning of the file, the password must be provided at
