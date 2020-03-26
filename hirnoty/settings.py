@@ -30,9 +30,6 @@ if access(SYS_CONFIG_PATH, R_OK):
 
 if access(CONFIG_PATH, R_OK):
     log.info("Getting configuration from %s", CONFIG_PATH)
-    config["SCRIPT_DIR"] = path.join(CONFIG_DIR, "scripts")
-    config["INDEX_DIR"] = config["SCRIPT_DIR"]
-    config["DOWN_DIR"] = config["SCRIPT_DIR"]
     with open(CONFIG_PATH, 'r') as fhandle:
         exec(fhandle.read(), config)
 
