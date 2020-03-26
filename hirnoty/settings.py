@@ -5,6 +5,7 @@ log = logging.getLogger(__name__)
 _REQUIRED = set(["TOKEN"])
 _ALLOWED = set(["ACL",
                 "BIND_ADDRESS",
+                "CONNECT_ADDRESS",
                 "LOGLEVEL",
                 "OTP",
                 "SCRIPT_DIR",

@@ -33,7 +33,8 @@ Execute script with name {script_name}
 
 \join {topic_name}
 
-Subscribe to topic {topic_name}
+Subscribe to topic {topic_name}. Hirnoty offers a "log" topic where hirnoty
+logs are sent.
 
 ## How to send data to a topic from other program
 
@@ -56,6 +57,9 @@ ACL (list): list of ids of allowed users. Defaults to `None` (disabled)
 LOGLEVEL (str): loglevel, choice between: `'error'`, `warning`, `'info'` or `'debug'`. Defaults to `'info'`.
 
 BIND\_ADDRESS (str): address to receive the external messages from, defauls to '*:1234'
+
+CONNECT\_ADDRESS (str): address to send messages to '127.0.0.1:1234'.
+This is used for the logging topic.
 
 OTP (str): path to a file with one time passwords (one per line) that will be
 consume from end to beginning of the file, the password must be provided at
