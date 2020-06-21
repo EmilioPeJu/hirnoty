@@ -9,6 +9,6 @@ setup(
     packages=['hirnoty',],
     install_requires=['aiogram',
                       'pyzmq'],
-    scripts=['hirnoty-ctl']
+    scripts=['hirnoty-ctl', 'hirnoty-send']
 )
 
