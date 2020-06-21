@@ -10,8 +10,7 @@ _ALLOWED = set(["ACL",
                 "OTP",
                 "SCRIPT_DIR",
                 "INDEX_DIR",
-                "INVERTED_INDEX",
-                "DOWN_DIR"]).union(_REQUIRED)
+                "INVERTED_INDEX"]).union(_REQUIRED)
 SYS_CONFIG_DIR = path.join('/etc', 'hirnoty')
 SYS_CONFIG_PATH = path.join(SYS_CONFIG_DIR, "config.py")
 CONFIG_DIR = path.join(path.expanduser('~'), '.config', 'hirnoty')
