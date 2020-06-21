@@ -33,7 +33,7 @@ class Commands(object):
         for (method_name, method) in inspect.getmembers(self):
             if method_name.endswith('_command'):
                 command_name = method_name[0:-8]
-                if command_name == "default" or command_name == 'doc':
+                if command_name in ['default', 'doc', 'video']:
                     continue
                 commands = [command_name]
                 log.info("Registering command %s", commands)
