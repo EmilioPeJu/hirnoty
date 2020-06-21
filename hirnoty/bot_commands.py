@@ -51,14 +51,14 @@ class Commands(object):
         log.info("Executing command %s", command)
         runner = Runner(self._config["SCRIPT_DIR"], command, args)
         async for line in runner.work():
-            await message.reply(line)
+            await message.answer(line)
 
     async def join_command(self, message):
         topics = shlex.split(message["text"])[1:]
         for topic in topics:
             log.info("Subscribing to %s", topic)
-            self._mq.subscribe(topic, message.reply)
-            await message.reply(f"{topic}: Subscribed")
+            self._mq.subscribe(topic, message.answer)
+            await message.answer(f"{topic}: Subscribed")
 
     @staticmethod
     def _sanitize_file_name(name):
