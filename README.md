@@ -57,7 +57,8 @@ The user configuration is `~/.config/hirnoty/config.py`
 TOKEN (str): Bot token (required).
 
 SCRIPT\_DIR (str): Path to scripts directory.
-Defaults to `~/.config/hirnoty/scripts`.
+
+INDEX\_DIR (str): where new indexed files will be put.
 
 ACL (list): list of ids of allowed users. Defaults to `None` (disabled)
 
