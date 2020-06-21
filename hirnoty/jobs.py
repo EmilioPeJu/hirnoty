@@ -14,8 +14,8 @@ class ScriptNotFound(Exception):
 
 class Runner(object):
 
-    def __init__(self, config, template, args):
-        self._config = config
+    def __init__(self, script_dir, template, args):
+        self.script_dir = script_dir
         self.template = template
         self.process = None
         self.command = self._get_script_path(self.template)
@@ -28,7 +28,7 @@ class Runner(object):
     def _get_script_path(self, template):
         safe_template = self._sanitize_template(template)
         for ext in ("", ".sh", ".py"):
-            script_path = path.join(self._config["SCRIPT_DIR"], "{}{}"
+            script_path = path.join(self.script_dir, "{}{}"
                                     .format(safe_template, ext))
             if access(script_path, X_OK):
                 return script_path

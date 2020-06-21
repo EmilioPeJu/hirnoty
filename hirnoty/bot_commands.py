@@ -41,8 +41,8 @@ class Commands(object):
     async def exec_command(self, message):
         parts = shlex.split(message["text"])
         command, args = parts[1], parts[2:]
-        log.info("Executing command %s", command);
-        runner = Runner(self._config, command, args)
+        log.info("Executing command %s", command)
+        runner = Runner(self._config["SCRIPT_DIR"], command, args)
         async for line in runner.work():
             await message.reply(line)
 
