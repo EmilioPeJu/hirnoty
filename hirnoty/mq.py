@@ -20,11 +20,9 @@ class MessageQueue(object):
     def subscribe(self, topic, callback):
         log.info("Added callback to topic: %s", topic)
         self._subscribers.setdefault(topic, []).append(callback)
-        self._subscribers.setdefault('all', []).append(callback)
 
     def unsubscribe(self, topic, callback):
         try:
-            self._subscribers.get('all', []).remove(callback)
             self._subscribers.get(topic, []).remove(callback)
         except ValueError:
             pass

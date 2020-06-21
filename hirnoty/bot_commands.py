@@ -41,6 +41,7 @@ class Commands(object):
         if getattr(self, 'default_command', False):
             # make sure this is last to not override others
             self._bot.register_handler(self.default_command, content_types=ANY)
+        self._all_unsubscribers = {}
 
     def close(self):
         self._index.close()
@@ -54,11 +55,28 @@ class Commands(object):
             await message.answer(line)
 
     async def join_command(self, message):
-        topics = shlex.split(message["text"])[1:]
-        for topic in topics:
-            log.info("Subscribing to %s", topic)
-            self._mq.subscribe(topic, message.answer)
-            await message.answer(f"{topic}: Subscribed")
+        args = message['text'].split()[1:]
+        topic = " ".join(args)
+        if self._all_unsubscribers.get(
+                message["chat"]["id"], {}).get(topic):
+            await message.answer(f"{topic}: Already subscribed")
+            return
+        log.info("Subscribing to %s", topic)
+        self._mq.subscribe(topic, message.answer)
+        self._all_unsubscribers. \
+            setdefault(message["chat"]["id"], {})[topic] = \
+            lambda: self._mq.unsubscribe(topic, message.answer)
+        await message.answer(f"{topic}: Subscribed")
+
+    async def leave_command(self, message):
+        args = message['text'].split()[1:]
+        topic = " ".join(args)
+        unsubscribers = self._all_unsubscribers.get(message["chat"]["id"], {})
+        unsubscribe = unsubscribers.get(topic)
+        if unsubscribe:
+            unsubscribe()
+            del unsubscribers[topic]
+            await message.answer(f"{topic}: Unsubscribed")
 
     @staticmethod
     def _sanitize_file_name(name):

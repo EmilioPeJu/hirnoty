@@ -37,6 +37,11 @@ Subscribe to topic {topic_name}. Hirnoty offers a "log" topic where hirnoty
 logs are sent.
 
 
+\leave {topic_name}
+
+Unsubscribe from topic {topic_name}.
+
+
 \search {keywords}
 
 Search and return files matching the list of keywords passed. If you want
