@@ -62,5 +62,5 @@ class Runner(object):
             yield format_output(data)
 
         rc = await self.process.wait()
-        yield f"{pid}: Finished process with rc {rc}"
+        yield f"{pid}: Finished with rc {rc}"
         self._started = True
