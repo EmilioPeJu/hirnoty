@@ -174,6 +174,8 @@ class Commands(object):
         doc = self._index.index_file(None, terms, sane_file_name, hash_,
                                      DOCUMENT)
         await message.reply(f"File indexed: {doc}")
+    async def test_command(self, message):
+        await message.reply(f"Hello world")
 
     async def default_command(self, message):
         # for logging purposes
