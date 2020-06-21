@@ -9,6 +9,7 @@ from os import path, access, R_OK
 log = logging.getLogger(__name__)
 SEP_FILEID = "|"
 SEP_KEYWORDS = "^"
+SEP_ENTRY = "\n"
 METADATA_FILENAME = ".metadata.txt"
 
 IndexEntry = namedtuple("IndexEntry", ["fileid", "filename", "keywords"])
@@ -36,7 +37,8 @@ class SimpleIndex(object):
 
     @staticmethod
     def _replace_separators(text):
-        return text.replace(SEP_FILEID, " ").replace(SEP_KEYWORDS, " ")
+        return text.replace(SEP_FILEID, " ").replace(SEP_KEYWORDS, " ") \
+            .replace(SEP_ENTRY, " ")
 
     def add_entry(self, filename, keywords, content):
         keywords = self._replace_separators(keywords) if keywords else ""
@@ -44,7 +46,7 @@ class SimpleIndex(object):
         fileid = hashlib.sha256(content).hexdigest()
         if self.fm.contains(fileid):
             raise FileExistsError("File already added")
-        new_entry = f"{fileid}{SEP_FILEID}{filename}{SEP_KEYWORDS}{keywords}\n"
+        new_entry = f"{fileid}{SEP_FILEID}{filename}{SEP_KEYWORDS}{keywords}{SEP_ENTRY}"
         self.data_file.write(new_entry)
         self.data_file.flush()
         # write to memory buffer
@@ -68,11 +70,11 @@ class SimpleIndex(object):
             i = data_content.find(text, i)
             if i == -1:
                 break
-            while i >= 0 and data_content[i] != '\n':
+            while i >= 0 and data_content[i] != SEP_ENTRY:
                 i -= 1
             start_index = i + 1
             i += 1
-            while data_content[i] != '\n':
+            while data_content[i] != SEP_ENTRY:
                 i += 1
             fileid, rest = data_content[start_index:i].split(SEP_FILEID)
             filename, keywords = rest.split(SEP_KEYWORDS)
