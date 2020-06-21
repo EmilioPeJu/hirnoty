@@ -36,6 +36,13 @@ Execute script with name {script_name}
 Subscribe to topic {topic_name}. Hirnoty offers a "log" topic where hirnoty
 logs are sent.
 
+
+\search {keywords}
+
+Search and return files matching the list of keywords passed. If you want
+to index new files, send a file to the bot and set the caption to the keywords
+associated to that file.
+
 ## How to send data to a topic from other program
 
 * Create a zmq socket of type PUSH
@@ -64,6 +71,8 @@ This is used for pushing to internal topics, e.g. log topic.
 OTP (str): path to a file with one time passwords (one per line) that will be
 consume from end to beginning of the file, the password must be provided at
 the end of the command. Defaults to None (disabled).
+
+INVERTED_INDEX (bool): enable file indexing using an inverted index. Defaults to False.
 
 ## Built With
 * [aiogram](https://github.com/aiogram/aiogram) Asynchronous library for
