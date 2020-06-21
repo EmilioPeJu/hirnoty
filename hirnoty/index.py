@@ -1,102 +1,103 @@
+import io
 import json
+import hashlib
 import logging
-from os import path
-NOTUPLOADED_PREFIX = "_"
+import re
+from collections import namedtuple
+from os import path, access, R_OK
+
 log = logging.getLogger(__name__)
+SEP_FILEID = "|"
+SEP_KEYWORDS = "^"
+METADATA_FILENAME = ".metadata.txt"
+
+IndexEntry = namedtuple("IndexEntry", ["fileid", "filename", "keywords"])
 
 
 class SimpleIndex(object):
+    def __init__(self, save_path):
+        self.save_path = save_path
+        self.fm = FileManager(save_path)
+        self.meta_path = path.join(save_path, METADATA_FILENAME)
+        try:
+            self.load_data()
+        except FileNotFoundError:
+            self.data = io.StringIO()
+        self.data_file = open(self.meta_path, 'a')
 
-    def __init__(self, index_dir):
-        self.doc_index_path = path.join(index_dir, '.doc_index')
-        self.lex_index_path = path.join(index_dir, '.lex_index')
-        self.hash2docid_index_path = path.join(index_dir, '.hash2docid_index')
-        self._lexicon = {}
-        self._docs = {}
-        self._hash2docid = {}
-        if not path.exists(self.doc_index_path):
-            self.save()
-        else:
-            self.load()
+    def load_data(self):
+        with open(self.meta_path, 'r') as fhandle:
+            self.data = io.StringIO(fhandle.read())
 
-    def not_uploaded(self, doc_id):
-        return doc_id.startswith(NOTUPLOADED_PREFIX)
+    @staticmethod
+    def _verify_fileid(fileid):
+        if not re.match("[a-f0-9]{64}", fileid):
+            raise IndexError("Invalid fileid")
 
-    def has_doc(self, doc_id):
-        return doc_id in self._docs
+    @staticmethod
+    def _replace_separators(text):
+        return text.replace(SEP_FILEID, " ").replace(SEP_KEYWORDS, " ")
 
-    def has_hash(self, hash_):
-        return  hash_ in self._hash2docid
+    def add_entry(self, filename, keywords, content):
+        keywords = self._replace_separators(keywords) if keywords else ""
+        filename = self._replace_separators(filename) if filename else ""
+        fileid = hashlib.sha256(content).hexdigest()
+        if self.fm.contains(fileid):
+            raise FileExistsError("File already added")
+        new_entry = f"{fileid}{SEP_FILEID}{filename}{SEP_KEYWORDS}{keywords}\n"
+        self.data_file.write(new_entry)
+        self.data_file.flush()
+        # write to memory buffer
+        self.data.write(new_entry)
+        self.fm.write(fileid, content)
+        return IndexEntry(fileid, filename, keywords)
 
-    def normalize_words(self, words):
-        search =  'áéíóúü'
-        replace = 'aeiouu'
-        trans = str.maketrans(search, replace)
-        for word in words:
-            yield word.strip().lower().translate(trans)
+    def close(self):
+        # don't use object after calling this
+        self.data_file.close()
 
-    def index_file(self, doc_id, words, filename, hash_, content_type):
-        if doc_id == None:
-            doc_id = NOTUPLOADED_PREFIX + hash_;
-        sane_words = list(self.normalize_words(words))
-        doc_entry = self._docs.get(doc_id)
-        if not doc_entry:
-            doc_entry = {'id': doc_id, 'keywords': []}
-            self._docs[doc_id] = doc_entry
-        doc_entry['keywords'].extend(sane_words)
-        doc_entry['filename'] = filename
-        doc_entry['hash'] = hash_
-        doc_entry['content_type'] = content_type
-        self._hash2docid[hash_] = doc_id
-        for word in sane_words:
-            lex_entry = self._lexicon.get(word)
-            if not lex_entry:
-                lex_entry = []
-                self._lexicon[word] = lex_entry
-            lex_entry.append(doc_id)
-        # it's horrible I know
-        self.save()
-        return doc_entry
+    def get_file(self, fileid):
+        self._verify_fileid(fileid)
+        return self.fm.get_file(fileid)
 
-    def update_docid(self, old, new):
-        log.info('updating docid %s to %s', old, new)
-        doc = self.get_metadata(old)
-        del self._docs[old]
-        self._docs[new] = doc
-        self._hash2docid[doc['hash']] = new
-        for word in doc['keywords']:
-            lex_entry = self._lexicon[word]
-            index = lex_entry.index(old)
-            lex_entry[index] = new
-        self.save()
+    def search(self, text):
+        data_content = self.data.getvalue()
+        i = 0
+        result = []
+        while True:
+            i = data_content.find(text, i)
+            if i == -1:
+                break
+            while i >= 0 and data_content[i] != '\n':
+                i -= 1
+            start_index = i + 1
+            i += 1
+            while data_content[i] != '\n':
+                i += 1
+            fileid, rest = data_content[start_index:i].split(SEP_FILEID)
+            filename, keywords = rest.split(SEP_KEYWORDS)
+            result.append(IndexEntry(fileid, filename, keywords))
+            log.debug("Found index result %s", result[-1])
+        return result
 
-    def search_word(self, word):
-        return self._lexicon.get(word, [])
 
-    def search_words(self, words):
-        if not words:
-            return []
-        result = set(self.search_word(words[0]))
-        for word in words[1:]:
-            result = result & set(self.search_word(word))
-        return list(result)
+class FileManager(object):
+    def __init__(self, path):
+        self.path = path
 
-    def get_metadata(self, doc_id):
-        return self._docs.get(doc_id)
+    def contains(self, filename):
+        return access(path.join(self.path, filename), R_OK)
 
-    def load(self):
-        with open(self.doc_index_path, 'r') as fhandler:
-            self._docs = json.load(fhandler)
-        with open(self.lex_index_path, 'r') as fhandler:
-            self._lexicon = json.load(fhandler)
-        with open(self.hash2docid_index_path, 'r') as fhandler:
-            self._hash2docid = json.load(fhandler)
+    def get_file(self, filename):
+        return open(path.join(self.path, filename), "rb")
 
-    def save(self):
-        with open(self.doc_index_path, 'w') as fhandler:
-            json.dump(self._docs, fhandler)
-        with open(self.lex_index_path, 'w') as fhandler:
-            json.dump(self._lexicon, fhandler)
-        with open(self.hash2docid_index_path, 'w') as fhandler:
-            json.dump(self._hash2docid, fhandler)
+    def write(self, filename, content):
+        with open(path.join(self.path, filename), 'wb') as fhandle:
+            fhandle.write(content)
 
+    def make_read_only(self, filename):
+        pass
+
+    def read(self, filename):
+        with open(path.join(self.path, filename), "rb") as fhandle:
+            return fhandle.read()

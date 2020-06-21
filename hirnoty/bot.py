@@ -29,7 +29,7 @@ class BotManager(object):
         self.dispatcher = Dispatcher(self.bot)
 
     def register_handler(self, handler, commands=None, regexp=None,
-            content_types=None):
+                         content_types=None):
         self.dispatcher.register_message_handler(
             log_message(run_handler_if_allowed(handler)),
             commands=commands, regexp=regexp,
