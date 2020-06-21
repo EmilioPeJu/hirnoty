@@ -63,6 +63,7 @@ class SimpleIndex(object):
         return self.fm.get_file(fileid)
 
     def search(self, text):
+        text = self._replace_separators(text)
         data_content = self.data.getvalue()
         i = 0
         result = []
