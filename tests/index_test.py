@@ -21,8 +21,11 @@ class IndexTest(unittest.TestCase):
     def setUp(self):
         self.tempfolder = tempfile.TemporaryDirectory()
         self.tempfolder_path = self.tempfolder.__enter__()
-        self.index = SimpleIndex(self.tempfolder_path)
+        self.create_index()
         self.add_example_entries()
+
+    def create_index(self):
+        self.index = SimpleIndex(self.tempfolder_path)
 
     def tearDown(self):
         self.index.close()
@@ -50,7 +53,7 @@ class IndexTest(unittest.TestCase):
 
     def test_closing_and_opening_keeps_data(self):
         self.index.close()
-        self.index = SimpleIndex(self.tempfolder_path)
+        self.create_index()
         self.test_saved_content()
 
     def test_search_one_metadata(self):
@@ -73,6 +76,11 @@ class IndexTest(unittest.TestCase):
     def test_double_adding(self):
         self.assertRaises(FileExistsError, self.index.add_entry, "no matter",
                           "never mind", EXAMPLE1_CONTENT)
+
+
+class InvertedIndexTest(IndexTest):
+    def create_index(self):
+        self.index = SimpleIndex(self.tempfolder_path, True)
 
 
 if __name__ == "__main__":

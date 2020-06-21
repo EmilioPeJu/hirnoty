@@ -19,7 +19,8 @@ class Commands(object):
         self._bot = bot_manager
         self._mq = mq
         self._config = config
-        self._index = SimpleIndex(self._config["INDEX_DIR"])
+        self._index = SimpleIndex(self._config["INDEX_DIR"],
+                                  self._config["INVERTED_INDEX"])
         # we use this to know if a file was already sent to telegram
         # and also it maps from our index's file id to telegram's file id
         self._doc_cache = {}
