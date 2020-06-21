@@ -42,6 +42,9 @@ class Commands(object):
             # make sure this is last to not override others
             self._bot.register_handler(self.default_command, content_types=ANY)
 
+    def close(self):
+        self._index.close()
+
     async def exec_command(self, message):
         parts = shlex.split(message["text"])
         command, args = parts[1], parts[2:]

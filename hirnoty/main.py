@@ -24,6 +24,7 @@ def main():
         asyncio.create_task(mq.receive_loop())
 
     bot_manager.run(on_startup)
+    commands.close()
 
 
 if __name__ == "__main__":
