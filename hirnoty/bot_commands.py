@@ -145,8 +145,8 @@ class Commands(object):
         if not found:
             await message.reply("No file found")
 
-    async def test_command(self, message):
-        await message.reply(f"Hello world")
+    async def ping_command(self, message):
+        await message.answer("pong")
 
     async def default_command(self, message):
         # for logging purposes
