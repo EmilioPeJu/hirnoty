@@ -3,6 +3,7 @@ import json
 import hashlib
 import logging
 import re
+import zlib
 from collections import namedtuple
 from os import path, access, R_OK
 
@@ -22,7 +23,7 @@ IndexEntry = namedtuple("IndexEntry", ["fileid", "filename", "keywords"])
 class SimpleIndex(object):
     def __init__(self, save_path, use_inverted_index=False):
         self.save_path = save_path
-        self.fm = FileManager(save_path)
+        self.fm = CompressingFileManager(save_path)
         self.meta_path = path.join(save_path, METADATA_FILENAME)
         if not path.exists(self.meta_path):
             create_file(self.meta_path)
@@ -118,7 +119,7 @@ class LinearSearch(object):
         self.metadata_file.write(raw_entry)
         self.metadata_file.flush()
         # write file with content
-        self.fm.write(fileid, content)
+        self.fm.write_content(fileid, content)
         return entry
 
 
@@ -167,7 +168,7 @@ class InvertedIndexSearch(object):
         self.metadata_file.write(dump_index_entry(entry))
         self.metadata_file.flush()
         # write file with content
-        self.fm.write(fileid, content)
+        self.fm.write_content(fileid, content)
         return entry
 
     def search(self, text):
@@ -195,13 +196,35 @@ class FileManager(object):
     def get_file(self, fileid):
         return open(path.join(self.path, fileid), "rb")
 
-    def write(self, fileid, content):
+    def write_content(self, fileid, content):
         with open(path.join(self.path, fileid), 'wb') as fhandle:
             fhandle.write(content)
 
     def make_read_only(self, fileid):
         pass
 
-    def read(self, fileid):
+    def read_content(self, fileid):
         with open(path.join(self.path, fileid), "rb") as fhandle:
             return fhandle.read()
+
+
+class CompressingFileManager(object):
+    # This class manages files based on a file id
+    def __init__(self, path):
+        self._fm = FileManager(path)
+
+    def contains(self, fileid):
+        return self._fm.contains(fileid)
+
+    def get_file(self, fileid):
+        with self._fm.get_file(fileid) as fhandle:
+            return io.BytesIO(zlib.decompress(fhandle.read()))
+
+    def write_content(self, fileid, content):
+        return self._fm.write_content(fileid, zlib.compress(content))
+
+    def make_read_only(self, fileid):
+        return self._fm.make_read_only(fileid)
+
+    def read_content(self, fileid):
+        return zlib.decompress(self._fm.read(fileid))
