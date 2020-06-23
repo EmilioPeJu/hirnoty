@@ -66,6 +66,8 @@ class IndexTest(unittest.TestCase):
     def test_search_many_metadata(self):
         result = self.index.search("example")
         self.assertEqual(len(result), 2)
+        # make sure the order is deterministic
+        result.sort(key=lambda x: x.filename)
         self.assertEqual(result[0].filename, EXAMPLE1_FILENAME)
         self.assertEqual(result[0].fileid, EXAMPLE1_FILEID)
         self.assertEqual(result[0].keywords, EXAMPLE1_KEYWORDS)

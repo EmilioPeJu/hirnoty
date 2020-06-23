@@ -129,6 +129,7 @@ class InvertedIndexSearch(object):
         self.metadata_path = metadata_path
         self.fm = fm
         self.inv_index = {}
+        self.fileid_index = {}
         self.load_data()
 
     def close(self):
@@ -139,9 +140,10 @@ class InvertedIndexSearch(object):
         return [item.strip() for item in re.split(r"[\n.,_\-\s]", text)]
 
     def _insert_to_inv_index(self, entry):
+        self.fileid_index[entry.fileid] = entry
         for word in self.split(entry.filename) + self.split(entry.keywords):
             if word not in self.BLACKLISTED_WORDS:
-                self.inv_index.setdefault(word, []).append(entry)
+                self.inv_index.setdefault(word, []).append(entry.fileid)
 
     def load_data(self):
         with open(self.metadata_path, 'r') as fhandle:
@@ -157,7 +159,7 @@ class InvertedIndexSearch(object):
         filename = replace_index_separators(filename).strip() \
             if filename else ""
         fileid = hashlib.sha256(content).hexdigest()
-        if self.fm.contains(fileid):
+        if fileid in self.fileid_index:
             raise FileExistsError("File already added")
         entry = IndexEntry(fileid, filename, keywords)
         self._insert_to_inv_index(entry)
@@ -170,16 +172,16 @@ class InvertedIndexSearch(object):
 
     def search(self, text):
         text = replace_index_separators(text).strip()
-        result = set()
+        acc = set()
         first = True
         for keyword in self.split(text):
-            entries = self.inv_index.get(keyword, [])
+            fileids = self.inv_index.get(keyword, [])
             if first:
-                result = result.union(set(entries))
+                acc = acc.union(set(fileids))
             else:
-                result = result.intersection(set(entries))
+                acc = acc.intersection(set(fileids))
             first = False
-        return list(result)
+        return [self.fileid_index[i] for i in acc]
 
 
 class FileManager(object):
