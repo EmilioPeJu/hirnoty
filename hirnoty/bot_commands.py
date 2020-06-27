@@ -127,7 +127,13 @@ class Commands(object):
         if content_type is None:
             content_type = DOCUMENT
         file_io = BytesIO()
-        dst = await self._bot.bot.download_file_by_id(file_id, file_io)
+        try:
+            dst = await self._bot.bot.download_file_by_id(file_id, file_io)
+        except Exception as e:
+            # we can still index without the content
+            msg = f"Error downloading file: {e}"
+            log.info(msg)
+            await callback(msg)
         try:
             entry = self._index.add_entry(file_name, caption,
                                           file_io.getvalue(), file_id)
