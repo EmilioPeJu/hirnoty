@@ -88,3 +88,6 @@ test-venv/
 .idea/
 
 *.o
+hirnoty/scripts
+deploy/
+_build
