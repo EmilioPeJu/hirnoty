@@ -9,6 +9,7 @@ from io import BytesIO
 from os import path
 
 from hirnoty.bot import DOCUMENT, ANY, VIDEO
+from hirnoty.file_manager import CompressingFileManager
 from hirnoty.index import CompressingFileManager, SimpleIndex, FILE_PRESENT
 from hirnoty.jobs import Runner, ScriptNotFound
 
@@ -147,8 +148,7 @@ class Commands(object):
                 sent = await self._bot.bot.send_document(message.chat.id,
                                                          file_id)
             elif entry.extra:  # extra field is used for file_id
-                log.info("Found file id of %s", entry.entry_id)
-                log.info("extra: %s", repr(entry.extra))
+                log.info("Found file id %s", entry.entry_id)
                 sent = await self._bot.bot.send_document(message.chat.id,
                                                          entry.extra)
             elif entry.entry_type == FILE_PRESENT:
