@@ -12,19 +12,26 @@ from hirnoty.utils import create_file
 log = logging.getLogger(__name__)
 # Separators for the index entry
 # they should be different
-SEP_FILEID = "|"
-SEP_KEYWORDS = "^"
+SEP_FIELDS = "|"
 SEP_ENTRY = "\n"
+SEP_SUB = " "
 METADATA_FILENAME = ".metadata.txt"
 
-IndexEntry = namedtuple("IndexEntry", ["fileid", "filename", "keywords"])
+IndexEntry = namedtuple("IndexEntry", ["entry_type", "entry_id", "filename",
+                                       "keywords", "extra"])
+
+FILE_ABSENT = "A"
+FILE_PRESENT = "P"
 
 
 class SimpleIndex(object):
-    def __init__(self, save_path, use_inverted_index=False):
-        self.save_path = save_path
-        self.fm = CompressingFileManager(save_path)
-        self.meta_path = path.join(save_path, METADATA_FILENAME)
+    def __init__(self, meta_dir, fm=None, use_inverted_index=False):
+        self.meta_dir = meta_dir
+        if fm:
+            self.fm = fm
+        else:
+            self.fm = CompressingFileManager(meta_dir)
+        self.meta_path = path.join(meta_dir, METADATA_FILENAME)
         if not path.exists(self.meta_path):
             create_file(self.meta_path)
         if use_inverted_index:
@@ -33,39 +40,54 @@ class SimpleIndex(object):
             self.engine = LinearSearch(self.meta_path, self.fm)
 
     @staticmethod
-    def _verify_fileid(fileid):
-        if not re.match("[a-f0-9]{64}", fileid):
-            raise IndexError("Invalid fileid")
+    def _verify_entry_id(entry_id):
+        if not re.match("[a-f0-9]{64}", entry_id):
+            raise IndexError("Invalid entry_id")
 
     def close(self):
+        log.info("Closing index system")
         # don't use object after calling this
         self.engine.close()
 
-    def get_file(self, fileid):
-        self._verify_fileid(fileid)
-        return self.fm.get_file(fileid)
+    def get_file(self, entry_id):
+        self._verify_entry_id(entry_id)
+        return self.fm.get_file(entry_id)
 
     def search(self, text):
         return self.engine.search(text)
 
-    def add_entry(self, filename, keywords, content):
-        return self.engine.add_entry(filename, keywords, content)
+    def add_entry(self, filename, keywords, content="", extra=""):
+        return self.engine.add_entry(filename, keywords, content, extra)
 
 
 def load_index_entry(line):
-    fileid, rest = line.split(SEP_FILEID)
-    filename, keywords = rest.split(SEP_KEYWORDS)
-    return IndexEntry(fileid, filename, keywords)
+    entry_type, entry_id, filename, keywords, extra = line.split(SEP_FIELDS, 4)
+    return IndexEntry(replace_sep(entry_type),
+                      replace_sep(entry_id),
+                      replace_sep(filename),
+                      replace_sep(keywords),
+                      replace_entry_sep(extra))
+
+
+def replace_sep(text):
+    return text.replace(SEP_FIELDS, SEP_SUB).replace(SEP_ENTRY, SEP_SUB)
+
+
+def replace_entry_sep(text):
+    return text.replace(SEP_ENTRY, SEP_SUB)
 
 
 def dump_index_entry(entry):
-    return f"{entry.fileid}{SEP_FILEID}{entry.filename}" \
-           f"{SEP_KEYWORDS}{entry.keywords}{SEP_ENTRY}"
+    return f"{SEP_FIELDS.join(entry)}{SEP_ENTRY}"
 
 
-def replace_index_separators(text, sub=" "):
-    return text.replace(SEP_FILEID, sub).replace(SEP_KEYWORDS, sub) \
-        .replace(SEP_ENTRY, sub)
+def _calculate_entry_id(filename, keywords, content=b"", extra=""):
+    if content:
+        return hashlib.sha256(content).hexdigest()
+    else:
+        return hashlib.sha256(
+            f"{SEP_FIELDS.join((filename, keywords,extra))}{SEP_ENTRY}"
+            .encode()).hexdigest()
 
 
 class LinearSearch(object):
@@ -84,7 +106,7 @@ class LinearSearch(object):
         self.metadata_file = open(self.metadata_path, 'a')
 
     def search(self, text):
-        text = replace_index_separators(text).strip()
+        text = text.strip()
         metadata_content = self.metadata.getvalue()
         i = 0
         result = []
@@ -100,18 +122,19 @@ class LinearSearch(object):
                 i += 1
             entry = load_index_entry(metadata_content[start_index:i])
             result.append(entry)
-            log.debug("Found index result %s", entry)
         return result
 
-    def add_entry(self, filename, keywords, content):
-        keywords = replace_index_separators(keywords).strip() \
-            if keywords else ""
-        filename = replace_index_separators(filename).strip() \
-            if filename else ""
-        fileid = hashlib.sha256(content).hexdigest()
-        if self.fm.contains(fileid):
+    def add_entry(self, filename, keywords, content="", extra=""):
+        keywords = keywords.strip() if keywords else ""
+        filename = filename.strip() if filename else ""
+        if content:
+            entry_type = FILE_PRESENT
+        else:
+            entry_type = FILE_ABSENT
+        entry_id = _calculate_entry_id(filename, keywords, content, extra)
+        if self.fm.contains(entry_id):
             raise FileExistsError("File already added")
-        entry = IndexEntry(fileid, filename, keywords)
+        entry = IndexEntry(entry_type, entry_id, filename, keywords, extra)
         raw_entry = dump_index_entry(entry)
         # write to memory buffer
         self.metadata.write(raw_entry)
@@ -119,7 +142,7 @@ class LinearSearch(object):
         self.metadata_file.write(raw_entry)
         self.metadata_file.flush()
         # write file with content
-        self.fm.write_content(fileid, content)
+        self.fm.write_content(entry_id, content)
         return entry
 
 
@@ -130,7 +153,7 @@ class InvertedIndexSearch(object):
         self.metadata_path = metadata_path
         self.fm = fm
         self.inv_index = {}
-        self.fileid_index = {}
+        self.entry_id_index = {}
         self.load_data()
 
     def close(self):
@@ -141,48 +164,50 @@ class InvertedIndexSearch(object):
         return [item.strip() for item in re.split(r"[\n.,_\-\s]", text)]
 
     def _insert_to_inv_index(self, entry):
-        self.fileid_index[entry.fileid] = entry
+        self.entry_id_index[entry.entry_id] = entry
         for word in self.split(entry.filename) + self.split(entry.keywords):
             if word not in self.BLACKLISTED_WORDS:
-                self.inv_index.setdefault(word, []).append(entry.fileid)
+                self.inv_index.setdefault(word, []).append(entry.entry_id)
 
     def load_data(self):
         with open(self.metadata_path, 'r') as fhandle:
             for line in fhandle:
-                entry = load_index_entry(line)
+                entry = load_index_entry(line[:-1])
                 self._insert_to_inv_index(entry)
         # keep it open to add new data
         self.metadata_file = open(self.metadata_path, 'a')
 
-    def add_entry(self, filename, keywords, content):
-        keywords = replace_index_separators(keywords).strip() \
-            if keywords else ""
-        filename = replace_index_separators(filename).strip() \
-            if filename else ""
-        fileid = hashlib.sha256(content).hexdigest()
-        if fileid in self.fileid_index:
+    def add_entry(self, filename, keywords, content="", extra=""):
+        keywords = keywords.strip() if keywords else ""
+        filename = filename.strip() if filename else ""
+        if content:
+            entry_type = FILE_PRESENT
+        else:
+            entry_type = FILE_ABSENT
+        entry_id = _calculate_entry_id(filename, keywords, content, extra)
+        if entry_id in self.entry_id_index:
             raise FileExistsError("File already added")
-        entry = IndexEntry(fileid, filename, keywords)
+        entry = IndexEntry(entry_type, entry_id, filename, keywords, extra)
         self._insert_to_inv_index(entry)
         # update metadata file
         self.metadata_file.write(dump_index_entry(entry))
         self.metadata_file.flush()
         # write file with content
-        self.fm.write_content(fileid, content)
+        self.fm.write_content(entry_id, content)
         return entry
 
     def search(self, text):
-        text = replace_index_separators(text).strip()
+        text = text.strip()
         acc = set()
         first = True
         for keyword in self.split(text):
-            fileids = self.inv_index.get(keyword, [])
+            entry_ids = self.inv_index.get(keyword, [])
             if first:
-                acc = acc.union(set(fileids))
+                acc = acc.union(set(entry_ids))
             else:
-                acc = acc.intersection(set(fileids))
+                acc = acc.intersection(set(entry_ids))
             first = False
-        return [self.fileid_index[i] for i in acc]
+        return [self.entry_id_index[i] for i in acc]
 
 
 class FileManager(object):
@@ -190,21 +215,31 @@ class FileManager(object):
     def __init__(self, path):
         self.path = path
 
-    def contains(self, fileid):
-        return access(path.join(self.path, fileid), R_OK)
+    def contains(self, entry_id):
+        if not entry_id:
+            return False
+        return access(path.join(self.path, entry_id), R_OK)
 
-    def get_file(self, fileid):
-        return open(path.join(self.path, fileid), "rb")
+    def get_file(self, entry_id):
+        if not entry_id:
+            raise IOError("Invalid file id")
+        return open(path.join(self.path, entry_id), "rb")
 
-    def write_content(self, fileid, content):
-        with open(path.join(self.path, fileid), 'wb') as fhandle:
+    def write_content(self, entry_id, content):
+        if not entry_id:
+            raise IOError("Invalid file id")
+        with open(path.join(self.path, entry_id), 'wb') as fhandle:
             fhandle.write(content)
 
-    def make_read_only(self, fileid):
+    def make_read_only(self, entry_id):
+        if not entry_id:
+            raise IOError("Invalid file id")
         pass
 
-    def read_content(self, fileid):
-        with open(path.join(self.path, fileid), "rb") as fhandle:
+    def read_content(self, entry_id):
+        if not entry_id:
+            raise IOError("Invalid file id")
+        with open(path.join(self.path, entry_id), "rb") as fhandle:
             return fhandle.read()
 
 
@@ -213,18 +248,18 @@ class CompressingFileManager(object):
     def __init__(self, path):
         self._fm = FileManager(path)
 
-    def contains(self, fileid):
-        return self._fm.contains(fileid)
+    def contains(self, entry_id):
+        return self._fm.contains(entry_id)
 
-    def get_file(self, fileid):
-        with self._fm.get_file(fileid) as fhandle:
+    def get_file(self, entry_id):
+        with self._fm.get_file(entry_id) as fhandle:
             return io.BytesIO(zlib.decompress(fhandle.read()))
 
-    def write_content(self, fileid, content):
-        return self._fm.write_content(fileid, zlib.compress(content))
+    def write_content(self, entry_id, content):
+        return self._fm.write_content(entry_id, zlib.compress(content))
 
-    def make_read_only(self, fileid):
-        return self._fm.make_read_only(fileid)
+    def make_read_only(self, entry_id):
+        return self._fm.make_read_only(entry_id)
 
-    def read_content(self, fileid):
-        return zlib.decompress(self._fm.read(fileid))
+    def read_content(self, entry_id):
+        return zlib.decompress(self._fm.read_content(entry_id))
