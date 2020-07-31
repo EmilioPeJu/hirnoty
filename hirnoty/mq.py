@@ -34,8 +34,11 @@ class MessageQueue(object):
 
     async def receive_loop(self):
         while True:
-            topic, data = await self.socket.recv_multipart()
-            log.debug("Receive %s from topic %s", data, topic)
-            topic = topic.decode("utf-8")
-            data = data.decode("utf-8")
-            await self.notify(topic, data)
+            try:
+                topic, data = await self.socket.recv_multipart()
+                log.debug("Receive %s from topic %s", data, topic)
+                topic = topic.decode("utf-8")
+                data = data.decode("utf-8")
+                await self.notify(topic, data)
+            except Exception as e:
+                log.error("Error in mq loop: %s", e)
